@@ -1,0 +1,31 @@
+[project]
+name = "ccgram-ext"
+version = "0.1.0"
+description = "Out-of-tree ccgram extensions: reaction-triggered actions (upstream #195)"
+requires-python = ">=3.14"
+dependencies = [
+    "httpx",
+    "structlog",
+    "python-telegram-bot>=21.2",
+]
+
+[project.entry-points."ccgram.extensions"]
+main = "ccgram_ext:register"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "ccgram",
+]
+
+[tool.uv.sources]
+ccgram = { path = "../ccgram" }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
