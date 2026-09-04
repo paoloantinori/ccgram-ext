@@ -76,7 +76,122 @@ class TestConfigParse:
 
 
 _FORUM_SET = frozenset(
-    ["☕️", "☠️", "♂️", "⚡️", "⚽️", "⛅️", "✅", "✈️", "✍️", "❓", "❗️", "❤️", "⭐️", "🍓", "🍔", "🍕", "🍣", "🍹", "🍽", "🎂", "🎃", "🎄", "🎉", "🎓", "🎖", "🎙", "🎟", "🎤", "🎨", "🎩", "🎬", "🎭", "🎮", "🎵", "🎶", "🏀", "🏁", "🏆", "🏔", "🏕", "🏖", "🏛", "🏠", "🏴", "🐈", "🐟", "👀", "👑", "👜", "👠", "👦", "👧", "👨", "👩", "👮", "👶", "💃", "💄", "💅", "💉", "💊", "💎", "💘", "💡", "💬", "💰", "💱", "💸", "💻", "💼", "📁", "📆", "📈", "📉", "📚", "📝", "📣", "📰", "📱", "📺", "🔎", "🔝", "🔞", "🔥", "🔬", "🔭", "🔮", "🕺", "🖨", "🗣", "🗳", "🚂", "🚗", "🛃", "🛍", "🛒", "🛥", "🤖", "🤡", "🤰", "🦄", "🦠", "🦮", "🧠", "🧪", "🧮", "🧳", "🧼", "🩺", "🪖", "🪙", "🪩", "🪪", "🫦"]
+    [
+        "☕️",
+        "☠️",
+        "♂️",
+        "⚡️",
+        "⚽️",
+        "⛅️",
+        "✅",
+        "✈️",
+        "✍️",
+        "❓",
+        "❗️",
+        "❤️",
+        "⭐️",
+        "🍓",
+        "🍔",
+        "🍕",
+        "🍣",
+        "🍹",
+        "🍽",
+        "🎂",
+        "🎃",
+        "🎄",
+        "🎉",
+        "🎓",
+        "🎖",
+        "🎙",
+        "🎟",
+        "🎤",
+        "🎨",
+        "🎩",
+        "🎬",
+        "🎭",
+        "🎮",
+        "🎵",
+        "🎶",
+        "🏀",
+        "🏁",
+        "🏆",
+        "🏔",
+        "🏕",
+        "🏖",
+        "🏛",
+        "🏠",
+        "🏴",
+        "🐈",
+        "🐟",
+        "👀",
+        "👑",
+        "👜",
+        "👠",
+        "👦",
+        "👧",
+        "👨",
+        "👩",
+        "👮",
+        "👶",
+        "💃",
+        "💄",
+        "💅",
+        "💉",
+        "💊",
+        "💎",
+        "💘",
+        "💡",
+        "💬",
+        "💰",
+        "💱",
+        "💸",
+        "💻",
+        "💼",
+        "📁",
+        "📆",
+        "📈",
+        "📉",
+        "📚",
+        "📝",
+        "📣",
+        "📰",
+        "📱",
+        "📺",
+        "🔎",
+        "🔝",
+        "🔞",
+        "🔥",
+        "🔬",
+        "🔭",
+        "🔮",
+        "🕺",
+        "🖨",
+        "🗣",
+        "🗳",
+        "🚂",
+        "🚗",
+        "🛃",
+        "🛍",
+        "🛒",
+        "🛥",
+        "🤖",
+        "🤡",
+        "🤰",
+        "🦄",
+        "🦠",
+        "🦮",
+        "🧠",
+        "🧪",
+        "🧮",
+        "🧳",
+        "🧼",
+        "🩺",
+        "🪖",
+        "🪙",
+        "🪩",
+        "🪪",
+        "🫦",
+    ]
 )
 
 
@@ -203,3 +318,31 @@ class TestPass:
         applied, considered = await I.apply_icons_for_bound_topics()
         assert (applied, considered) == (2, 3)
         assert len(bot.edits) == 2
+
+
+class TestFloodDelegation:
+    def test_local_fallback_when_core_absent(self, monkeypatch):
+        monkeypatch.setattr(I, "_core_pause_renames", None)
+        monkeypatch.setattr(I, "_core_flood_paused", None)
+        I._local_cooldown_until.clear()
+        assert I.renames_flood_paused(42) is False
+        I.pause_renames_for_flood(42)
+        assert I.renames_flood_paused(42) is True
+
+    def test_core_delegation_used_when_present(self, monkeypatch):
+        calls = []
+
+        def fake_pause(chat):
+            calls.append(chat)
+
+        now = []
+
+        def fake_paused(chat, t):
+            now.append(t)
+            return False
+
+        monkeypatch.setattr(I, "_core_pause_renames", fake_pause)
+        monkeypatch.setattr(I, "_core_flood_paused", fake_paused)
+        I.pause_renames_for_flood(9)
+        I.renames_flood_paused(9)
+        assert calls == [9] and len(now) == 1

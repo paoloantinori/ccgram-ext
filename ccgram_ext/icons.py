@@ -37,10 +37,16 @@ from ccgram.handlers.messaging_pipeline.message_sender import (
     rate_limit_send_message,
     send_kwargs,
 )
-from ccgram.handlers.status.topic_emoji import _flood_paused
-from ccgram.handlers.status.topic_emoji import (
-    _pause_renames_for_flood as pause_renames_for_flood,
-)
+
+try:  # private core helpers (#206); a rename upstream must not kill the
+    # whole extension at import time, only degrade flood coordination
+    from ccgram.handlers.status.topic_emoji import _flood_paused as _core_flood_paused
+    from ccgram.handlers.status.topic_emoji import (
+        _pause_renames_for_flood as _core_pause_renames,
+    )
+except ImportError:  # pragma: no cover - depends on core drift
+    _core_flood_paused = None
+    _core_pause_renames = None
 from ccgram.telegram_client import PTBTelegramClient
 from ccgram.thread_router import thread_router
 from ccgram.window_query import view_window
@@ -49,10 +55,23 @@ from telegram.error import RetryAfter, TelegramError
 
 from .config import load_config
 
+_LOCAL_FLOOD_COOLDOWN = 300.0
+_local_cooldown_until: dict[int, float] = {}
+
+
+def pause_renames_for_flood(chat_id: int) -> None:
+    """Coordinate with core's rename cooldown; else fall back locally."""
+    if _core_pause_renames is not None:
+        _core_pause_renames(chat_id)
+    else:
+        _local_cooldown_until[chat_id] = _time.monotonic() + _LOCAL_FLOOD_COOLDOWN
+
 
 def renames_flood_paused(chat_id: int) -> bool:
     """Flood-cooldown check (the core helper wants an explicit clock)."""
-    return _flood_paused(chat_id, _time.monotonic())
+    if _core_flood_paused is not None:
+        return _core_flood_paused(chat_id, _time.monotonic())
+    return _local_cooldown_until.get(chat_id, 0.0) > _time.monotonic()
 
 
 logger = structlog.get_logger()
