@@ -94,8 +94,8 @@ class TestTracking:
             R.on_message_delivered(
                 chat_id=1,
                 message_id=i,
-                window_id="w%d" % (i % 3),
-                text="t%d" % i,
+                window_id=f"w{i % 3}",
+                text=f"t{i}",
                 thread_id=None,
             )
         assert len(R._tracked) == 500

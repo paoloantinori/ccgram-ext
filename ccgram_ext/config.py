@@ -8,11 +8,12 @@ sections it needs. No core config code is imported.
 
 from __future__ import annotations
 
-import structlog
 import os
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
+
+import structlog
 
 logger = structlog.get_logger()
 
@@ -21,6 +22,9 @@ logger = structlog.get_logger()
 class ExtConfig:
     reaction_map: dict[str, str] = field(default_factory=dict)
     reaction_speak: dict[str, str] = field(default_factory=dict)
+    topic_icons: dict[str, str] = field(default_factory=dict)
+    topic_icon_heuristics: bool = False
+    actions: dict[str, dict] = field(default_factory=dict)
 
 
 def _toolbar_path() -> Path:
@@ -31,10 +35,10 @@ def _toolbar_path() -> Path:
 
 
 def _parse(raw: dict) -> ExtConfig:
-    section = raw.get("reactions")
-    if not isinstance(section, dict):
-        return ExtConfig()
-    section = dict(section)  # do not mutate the parsed document
+    reactions_raw = raw.get("reactions")
+    section = (
+        dict(reactions_raw) if isinstance(reactions_raw, dict) else {}
+    )  # do not mutate the parsed document
     reaction_map: dict[str, str] = {}
     speak: dict[str, str] = {}
 
@@ -68,7 +72,25 @@ def _parse(raw: dict) -> ExtConfig:
             )
             continue
         reaction_map[emoji] = name
-    return ExtConfig(reaction_map=reaction_map, reaction_speak=speak)
+    icons: dict[str, str] = {}
+    heuristics = False
+    icons_raw = raw.get("topic-icons")
+    if isinstance(icons_raw, dict):
+        heuristics = bool(icons_raw.pop("heuristics", False))
+        for k, v in icons_raw.items():
+            if isinstance(k, str) and isinstance(v, str):
+                icons[k.lower()] = v
+            else:
+                logger.warning("topic-icons: skipping malformed entry %r", k)
+    actions_raw = raw.get("actions")
+    actions = dict(actions_raw) if isinstance(actions_raw, dict) else {}
+    return ExtConfig(
+        reaction_map=reaction_map,
+        reaction_speak=speak,
+        topic_icons=icons,
+        topic_icon_heuristics=heuristics,
+        actions=actions,
+    )
 
 
 _cache: tuple[Path, float, ExtConfig] | None = None

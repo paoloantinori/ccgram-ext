@@ -2,7 +2,7 @@
 
 Out-of-tree extensions for [ccgram](https://github.com/alexei-led/ccgram), the Telegram bridge for AI coding agents. Features live here instead of in core, loaded through ccgram's extension seam via standard Python entry points: presence plus config equals active, absence equals completely inert.
 
-First feature: **reaction-triggered actions**. React to a bot message with a mapped emoji and something happens to the agent window that produced it: a PNG screenshot of the pane, a spoken voice note of the message text, or any toolbar key/text action. Proposed upstream as [#195](https://github.com/alexei-led/ccgram/issues/195) and declined for core ("hidden message state, actions by mistake"); this package is the opt-in answer. Whoever writes the config chooses the tradeoff, the same way they choose YOLO approval mode.
+Features: **reaction-triggered actions** and **topic identity icons**. React to a bot message with a mapped emoji and something happens to the agent window that produced it: a PNG screenshot of the pane, a spoken voice note of the message text, or any toolbar key/text action. Proposed upstream as [#195](https://github.com/alexei-led/ccgram/issues/195) and declined for core ("hidden message state, actions by mistake"); this package is the opt-in answer. Whoever writes the config chooses the tradeoff, the same way they choose YOLO approval mode.
 
 ## Requirement
 
@@ -10,7 +10,7 @@ A ccgram build that carries the extension seam (the `ccgram.extensions` entry-po
 
 - repo: https://github.com/paoloantinori/ccgram
 - branch: `fork/main`
-- core cost of the seam: one loader module plus three integration lines (`docs/extension-seam.md` in the fork)
+- core cost of the seam: one loader module plus four integration lines (`docs/extension-seam.md` in the fork)
 
 ## Install
 
@@ -53,9 +53,23 @@ timeout = 240                     # LAN engines can cold-start; give them room
 
 Single-user deployments are the sweet spot: the person reacting is the person who wrote the config. In a group with several allowed users, anyone's reaction acts on the window that produced the message; weigh that before enabling.
 
+## Topic identity icons
+
+The topic's avatar is the identity slot; the state emoji in the title stays core's. Declined upstream as [#197](https://github.com/alexei-led/ccgram/issues/197); here it is config, inert until you write a `[topic-icons]` table:
+
+```toml
+[topic-icons]
+"ccgram"  = "💻"        # window name, any "▸" segment of it, or cwd basename
+"planner" = "🔭"
+# heuristics = true     # opt-in: keyword table, then a deterministic hash
+                        # pick so every topic still gets a stable icon
+```
+
+Icons are applied when a topic is bound to a new window, and `/icons` re-runs the pass over every bound topic (paced 1.5s per edit; icon edits share Telegram's per-chat editForumTopic bucket with title renames, so a 429 puts the chat on the same cooldown core already uses). Telegram only accepts its fixed forum icon set; configured emojis outside it are skipped.
+
 ## Status
 
-Running in production on one deployment since August 2026. Topic identity icons (upstream [#197](https://github.com/alexei-led/ccgram/issues/197), also declined) are planned here next, as a static map plus optional fallback strategies.
+Reactions running in production since August 2026; topic icons ported from the same fork's original implementation (static map, opt-in heuristics, deterministic fallback).
 
 ## License
 

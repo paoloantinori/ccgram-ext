@@ -7,10 +7,10 @@ tts/ seam, which stays upstream-shaped.
 
 from __future__ import annotations
 
-import structlog
 from dataclasses import dataclass
 
 import httpx
+import structlog
 
 logger = structlog.get_logger()
 
@@ -89,6 +89,4 @@ class OpenAITtsSynthesizer:
                 status_code=status,
                 retry_after=retry_after,
             )
-        return TtsAudio(
-            data=resp.content, filename=f"speech.{self._response_format}"
-        )
+        return TtsAudio(data=resp.content, filename=f"speech.{self._response_format}")

@@ -12,14 +12,11 @@ from __future__ import annotations
 
 import asyncio
 import io
-import structlog
 import time
 from collections import OrderedDict
 from typing import NamedTuple
 
-from telegram import Update
-from telegram.error import TelegramError
-
+import structlog
 from ccgram.config import config as app_config
 from ccgram.handlers.messaging_pipeline.message_sender import (
     rate_limit_send_message,
@@ -28,6 +25,8 @@ from ccgram.handlers.messaging_pipeline.message_sender import (
 from ccgram.multiplexer import multiplexer as tmux_manager
 from ccgram.screenshot import text_to_image
 from ccgram.telegram_client import PTBTelegramClient
+from telegram import Update
+from telegram.error import TelegramError
 
 from .config import load_config
 from .tts_client import OpenAITtsSynthesizer, TtsSynthesisError
@@ -62,9 +61,7 @@ def on_message_delivered(
     if not window_id:
         return
     key = (chat_id, message_id)
-    _tracked[key] = _TrackedEntry(
-        window_id, time.monotonic(), text[:2000], thread_id
-    )
+    _tracked[key] = _TrackedEntry(window_id, time.monotonic(), text[:2000], thread_id)
     _tracked.move_to_end(key)
     while len(_tracked) > _MAX_TRACKED:
         _tracked.popitem(last=False)
@@ -107,9 +104,7 @@ async def handle_reaction_update(update: Update, context) -> None:
     if action is None:
         return
     window_id, _ts, message_text, thread_id = tracked
-    logger.info(
-        "reaction trigger", emoji=emoji, action=action, window_id=window_id
-    )
+    logger.info("reaction trigger", emoji=emoji, action=action, window_id=window_id)
     client = PTBTelegramClient(context.bot)
     try:
         if action == "screenshot":
@@ -117,16 +112,12 @@ async def handle_reaction_update(update: Update, context) -> None:
         elif action == "speak":
             await _action_speak(client, mr.chat.id, message_text, thread_id)
         else:
-            await _action_toolbar(
-                client, mr.chat.id, window_id, action, thread_id
-            )
+            await _action_toolbar(client, mr.chat.id, window_id, action, thread_id)
     except TelegramError as exc:
         logger.warning("reaction action failed", action=action, error=str(exc))
 
 
-def _resolve(
-    reaction_map: dict[str, str], mr
-) -> tuple[str, str | None]:
+def _resolve(reaction_map: dict[str, str], mr) -> tuple[str, str | None]:
     for emoji in sorted(_reaction_emojis(mr)):
         name = reaction_map.get(emoji)
         if name:
@@ -226,9 +217,7 @@ async def _action_speak(
         return
     voice = io.BytesIO(audio.data)
     voice.name = audio.filename
-    await client.send_voice(
-        chat_id=chat_id, voice=voice, **send_kwargs(thread_id)
-    )
+    await client.send_voice(chat_id=chat_id, voice=voice, **send_kwargs(thread_id))
 
 
 async def _action_toolbar(
@@ -239,15 +228,7 @@ async def _action_toolbar(
     thread_id: int | None = None,
 ) -> None:
     """Run a toolbar key/text action by name (builtins rejected)."""
-    import tomllib
-
-    from .config import _toolbar_path
-
-    try:
-        with open(_toolbar_path(), "rb") as f:
-            actions = tomllib.load(f).get("actions", {})
-    except (tomllib.TOMLDecodeError, OSError):
-        actions = {}
+    actions = load_config().actions
     action = actions.get(action_name)
     payload = action.get("payload", "") if isinstance(action, dict) else ""
     action_type = action.get("type") if isinstance(action, dict) else None
@@ -263,9 +244,7 @@ async def _action_toolbar(
     literal = (
         bool(action.get("literal", False)) if isinstance(action, dict) else False
     ) or enter
-    ok = await tmux_manager.send_keys(
-        window_id, payload, enter=enter, literal=literal
-    )
+    ok = await tmux_manager.send_keys(window_id, payload, enter=enter, literal=literal)
     if not ok:
         await rate_limit_send_message(
             client, chat_id, "⚠️ window not found", **send_kwargs(thread_id)
