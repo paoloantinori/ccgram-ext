@@ -67,6 +67,8 @@ The topic's avatar is the identity slot; the state emoji in the title stays core
 
 Icons are applied when a topic is bound to a new window, and `/icons` re-runs the pass over every bound topic (paced 1.5s per edit; icon edits share Telegram's per-chat editForumTopic bucket with title renames, so a 429 puts the chat on the same cooldown core already uses). Telegram only accepts its fixed forum icon set; configured emojis outside it are skipped.
 
+Two semantics worth knowing. An applied icon is Telegram-side state: it persists even if the feature or this whole package is later absent (topics keep their avatars from installs long gone). And an icon is applied once per run per window: a later `/icons` skips already-latched windows, and if the resolution chain changed since an earlier install (different mapping, different heuristics), the pass may set a different emoji; Telegram's not-modified reply counts as success.
+
 ## Status
 
 Reactions running in production since August 2026; topic icons ported from the same fork's original implementation (static map, opt-in heuristics, deterministic fallback).
