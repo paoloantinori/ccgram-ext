@@ -237,3 +237,15 @@ class TestReviewFixes:
         assert (renamed, total, skipped) == (2, 3, 1)
         assert [e["name"] for e in edits] == ["planner", "planner 2"]
         assert aligned == [("wA", "planner"), ("wB", "planner 2")]
+
+
+class TestNotModified:
+    async def test_rename_not_modified_counts_as_success(self, monkeypatch):
+        from telegram.error import TelegramError
+
+        class EchoBot:
+            async def edit_forum_topic(self, **kw):
+                raise TelegramError("Bad Request: TOPIC_NOT_MODIFIED")
+
+        monkeypatch.setattr(N, "_shared_client", lambda: EchoBot())
+        assert await N._rename_topic(1, 2, "same") is True

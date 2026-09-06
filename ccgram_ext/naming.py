@@ -29,7 +29,7 @@ from ccgram.session import session_manager
 from ccgram.telegram_client import PTBTelegramClient
 from ccgram.thread_router import thread_router
 from ccgram.window_query import view_window
-from telegram.error import RetryAfter
+from telegram.error import RetryAfter, TelegramError
 from telegram.ext import CommandHandler
 
 from .config import load_config
@@ -157,6 +157,12 @@ async def _rename_topic(chat_id: int, thread_id: int, name: str) -> bool:
         # of hammering the next topics into it.
         pause_renames_for_flood(chat_id)
         logger.warning("topic rename hit flood control; later pass retries")
+        return False
+    except TelegramError as exc:
+        msg = str(exc).lower().replace(" ", "_")
+        if "not_modified" in msg or "topic_not_modified" in msg:
+            return True  # already exactly this name: done
+        logger.warning("topic rename failed", error=str(exc))
         return False
     except Exception as exc:  # noqa: BLE001  # report, never raise into emit
         logger.warning("topic rename failed", error=str(exc))
