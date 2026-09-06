@@ -25,6 +25,7 @@ class ExtConfig:
     topic_icons: dict[str, str] = field(default_factory=dict)
     topic_icon_heuristics: bool = False
     actions: dict[str, dict] = field(default_factory=dict)
+    topic_names: str = ""
 
 
 def _toolbar_path() -> Path:
@@ -49,6 +50,12 @@ def _parse(raw: dict) -> ExtConfig:
                 speak[str(k)] = str(v)
             else:
                 logger.warning("reactions.speak: skipping non-scalar %r", k)
+
+    names_raw = raw.get("topic-names")
+    style = ""
+    if isinstance(names_raw, dict):
+        candidate = names_raw.get("style", "")
+        style = candidate if isinstance(candidate, str) else ""
 
     actions = raw.get("actions")
     actions = actions if isinstance(actions, dict) else {}
@@ -82,14 +89,13 @@ def _parse(raw: dict) -> ExtConfig:
                 icons[k.lower()] = v
             else:
                 logger.warning("topic-icons: skipping malformed entry %r", k)
-    actions_raw = raw.get("actions")
-    actions = dict(actions_raw) if isinstance(actions_raw, dict) else {}
     return ExtConfig(
         reaction_map=reaction_map,
         reaction_speak=speak,
         topic_icons=icons,
         topic_icon_heuristics=heuristics,
         actions=actions,
+        topic_names=style,
     )
 
 

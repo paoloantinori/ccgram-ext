@@ -69,6 +69,17 @@ Icons are applied when a topic is bound to a new window, and `/icons` re-runs th
 
 Two semantics worth knowing. An applied icon is Telegram-side state: it persists even if the feature or this whole package is later absent (topics keep their avatars from installs long gone). And an icon is applied once per run per window: a later `/icons` skips already-latched windows, and if the resolution chain changed since an earlier install (different mapping, different heuristics), the pass may set a different emoji; Telegram's not-modified reply counts as success.
 
+## Simple topic names
+
+The ccbot model: the topic title is yours. On every newly bound topic the extension sets a plain name once, the window's cwd basename (the project), with a counter only when another topic already holds that name. It then does what a manual topic rename does in core: the stored name is updated and the multiplexer window is renamed, so desktop and Telegram agree. Nothing rewrites the title afterward; state lives in the status bubble and identity in the topic icon.
+
+```toml
+[topic-names]
+style = "ccbot"
+```
+
+`/names` shows the proposed names for every bound topic; `/names apply` executes them (paced 1.5s per rename, sharing Telegram's per-chat editForumTopic bucket). To also stop the core's state-emoji title churn, set `CCGRAM_TOPIC_EMOJI=off` in the bridge environment: that is a fork-side env gate, and with it off the only remaining title writer is `/sync`.
+
 ## Status
 
 Reactions running in production since August 2026; topic icons ported from the same fork's original implementation (static map, opt-in heuristics, deterministic fallback).
