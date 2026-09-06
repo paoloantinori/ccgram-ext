@@ -1,6 +1,6 @@
 """ccgram-ext: out-of-tree ccgram extensions (see ccgram docs/extension-seam.md).
 
-Features: reaction-triggered actions; topic identity icons.
+Features: reaction-triggered actions; topic identity icons; simple topic names.
 
 Loaded by ccgram's extension seam via the ``ccgram.extensions`` entry
 point group. Presence in the environment + a ``[reactions]`` table in
@@ -30,4 +30,4 @@ def register(api) -> None:
     api.on("topic.bound", on_topic_bound_name)
     api.register_ptb_handler(names_handler(), "message")
     api.register_ptb_handler(CommandHandler("icons", icons_command), "message")
-    logger.info("ccgram-ext: reactions + topic icons registered")
+    logger.info("ccgram-ext: reactions + topic icons + names registered")
