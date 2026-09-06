@@ -94,6 +94,17 @@ async def on_topic_bound(
     key = (chat_id, thread_id)
     if key in _applied:
         return
+    if not cwd:
+        # Recovery binds carry the raw digest as window_name and no cwd:
+        # resolve the project from the persisted window state instead,
+        # or the topic would be named after the digest.
+        try:
+            view = view_window(window_id)
+            cwd = view.cwd if view else ""
+        except Exception:  # noqa: BLE001  # cosmetic
+            logger.debug("cwd lookup at bind failed", window_id=window_id)
+    if window_name.startswith("herdr-session-v1-"):
+        window_name = thread_router.get_display_name(window_id) or window_name
     taken = _names_in_use(chat_id, exclude_thread=thread_id)
     name = _simple_name(window_name, cwd, taken)
     _applied.add(key)

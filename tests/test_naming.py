@@ -249,3 +249,33 @@ class TestNotModified:
 
         monkeypatch.setattr(N, "_shared_client", lambda: EchoBot())
         assert await N._rename_topic(1, 2, "same") is True
+
+
+class TestRecoveryBind:
+    async def test_digest_window_name_uses_cwd(self, tmp_path, monkeypatch):
+        _cfg(tmp_path, '[topic-names]\nstyle = "ccbot"\n')
+        edits = []
+
+        class Bot:
+            async def edit_forum_topic(self, **kw):
+                edits.append(kw)
+
+        monkeypatch.setattr(N, "_shared_client", lambda: Bot())
+        monkeypatch.setattr(N, "update_stored_topic_name", lambda c, t, n: None)
+        async def align(wid, name):
+            return None
+
+        monkeypatch.setattr(N, "_align_window", align)
+        router = SimpleNamespace(
+            iter_thread_bindings_with_chat=lambda: iter([]),
+            get_display_name=lambda w: "Claude ▸ hassio ▸ 1 ▸ p1",
+        )
+        monkeypatch.setattr(N, "thread_router", router)
+        monkeypatch.setattr(
+            N, "view_window", lambda wid: SimpleNamespace(cwd="/repo/hassio")
+        )
+        digest = "herdr-session-v1-e91705ffadb1cc13834daf41538ac009d3184d474a30102b8a447bafd446e80b"
+        await N.on_topic_bound(
+            chat_id=1, thread_id=2, window_id=digest, window_name=digest
+        )
+        assert edits and edits[0]["name"] == "hassio"
