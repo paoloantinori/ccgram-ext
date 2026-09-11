@@ -262,6 +262,7 @@ class TestRecoveryBind:
 
         monkeypatch.setattr(N, "_shared_client", lambda: Bot())
         monkeypatch.setattr(N, "update_stored_topic_name", lambda c, t, n: None)
+
         async def align(wid, name):
             return None
 
@@ -279,3 +280,34 @@ class TestRecoveryBind:
             chat_id=1, thread_id=2, window_id=digest, window_name=digest
         )
         assert edits and edits[0]["name"] == "hassio"
+
+
+class TestCounterCascade:
+    async def test_no_cwd_bindings_are_never_touched_nor_counted(self, monkeypatch):
+        _cfg(monkeypatch, tmp_path=None) if False else None
+        import pathlib
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as td:
+            _cfg(pathlib.Path(td), '[topic-names]\nstyle = "ccbot"\n')
+            router = SimpleNamespace(
+                iter_thread_bindings_with_chat=lambda: iter(
+                    [(1, 10, 100, "wOK"), (1, 10, 101, "wOrphan")]
+                ),
+                get_display_name=lambda w: {
+                    "wOK": "Claude ▸ r ▸ proj ▸ p1",
+                    "wOrphan": "1 2 2",
+                }[w],
+            )
+            monkeypatch.setattr(N, "thread_router", router)
+            monkeypatch.setattr(
+                N,
+                "view_window",
+                lambda wid: SimpleNamespace(cwd="/repo/proj" if wid == "wOK" else ""),
+            )
+            rows = await N.propose_names()
+            # Only the cwd-backed binding is proposed; the orphan is
+            # invisible to both renaming AND collision counting.
+            assert rows == [(10, 100, "wOK", "Claude ▸ r ▸ proj ▸ p1", "proj")]
+            taken = N._names_in_use(10, exclude_thread=100)
+            assert taken == set()

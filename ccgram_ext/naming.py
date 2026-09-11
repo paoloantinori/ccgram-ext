@@ -141,6 +141,10 @@ def _names_in_use(chat_id: int, exclude_thread: int | None = None) -> set[str]:
             logger.debug(
                 "cwd lookup during collision check failed", window_id=window_id
             )
+        if not cwd:
+            # Unpredictable name source (orphaned window): a counter
+            # derived from its mutable display would leak into siblings.
+            continue
         name = _simple_name(thread_router.get_display_name(window_id) or "", cwd, set())
         taken.add(name.lower())
     return taken
@@ -193,13 +197,18 @@ async def propose_names() -> list[tuple[int, int, str, str, str]]:
     ) in thread_router.iter_thread_bindings_with_chat():
         if not window_id or chat_id is None:
             continue
-        display = thread_router.get_display_name(window_id) or window_id
-        cwd = ""
         try:
             view = view_window(window_id)
             cwd = view.cwd if view else ""
         except Exception:  # noqa: BLE001  # cosmetic
             logger.debug("cwd lookup failed during naming dry run", window_id=window_id)
+        if not cwd:
+            # No durable name source: renaming from the display fallback
+            # would rename from whatever WE wrote last time (counter
+            # cascade "1" -> "1 2" -> "1 2 2" across applies, live
+            # 2026-09-07). Orphaned windows keep their current title.
+            continue
+        display = thread_router.get_display_name(window_id) or window_id
         ordered.append((chat_id, thread_id, window_id, display, cwd))
     used: dict[int, set[str]] = {}
     for chat_id, thread_id, window_id, display, cwd in ordered:
