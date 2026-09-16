@@ -113,25 +113,50 @@ _HASH_POOL = (
     "🔮",
     "🧠",
     "🐈",
+    "🐟",
+    "🍔",
+    "🍕",
+    "🍣",
+    "🎂",
+    "🎉",
+    "🏆",
+    "🏔",
+    "🏛",
+    "👑",
+    "🚗",
+    "🚂",
+    "🛥",
+    "💬",
+    "💰",
+    "📈",
+    "📉",
+    "📣",
+    "🩺",
+    "🪩",
 )
 
 # Keyword heuristics, matched on name/basename tokens. Order matters:
 # specific before generic ("docker" before "doc").
 _KEYWORD_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    # Domain-specific only: generic tech words (agent, bot, api, server,
+    # web, repo, fork) match almost every project and collapse the pool
+    # to one icon. Those fall through to the hash instead.
     ("🎙", ("voice", "audio", "tts", "whisper", "vocale", "speech", "podcast")),
-    ("🤖", ("bot", "agent", "ai", "llm", "claude", "gpt")),
+    ("🏠", ("home", "hassio", "homeassistant", "smarthome", "iot", "alexa")),
     ("🧠", ("ml", "model", "train", "nn", "pqc", "quantum", "crypto", "cipher")),
-    ("🏠", ("home", "hassio", "homeassistant", "smarthome", "iot")),
     ("🐟", ("docker", "podman", "k8s", "container", "compose")),
-    ("💻", ("api", "rest", "grpc", "backend", "endpoint", "server")),
-    ("💬", ("web", "frontend", "ui", "site", "landing")),
-    ("📚", ("repo", "fork", "port", "upstream", "monorepo")),
-    ("🪩", ("mirror", "sync", "replica", "backup")),
-    ("🧪", ("test", "lab", "experiment", "spike", "poc", "analyzer", "trial")),
+    ("🧪", ("test", "lab", "experiment", "spike", "poc")),
     ("🖨", ("tool", "script", "util", "fix", "patch")),
     ("📝", ("doc", "docs", "readme", "guide", "wiki", "notes")),
     ("🔭", ("planner", "plan", "roadmap", "task", "todo", "backlog")),
     ("🧼", ("config", "infra", "ansible", "deploy", "devops", "setup")),
+    ("🪩", ("mirror", "sync", "replica", "backup")),
+    ("🍕", ("python", "pip", "uv")),
+    ("🚗", ("rust", "cargo")),
+    ("🎂", ("celebrat", "anniversar", "birthday")),
+    ("📈", ("graph", "chart", "dashboard", "metric", "stat")),
+    ("🏛", ("law", "legal", "policy", "govern")),
+    ("🩺", ("health", "medical", "monitor", "diagnos")),
 )
 
 # Applied icons this run: window_id -> emoji (the avatar is identity, not
@@ -194,7 +219,7 @@ def resolve_icon_emoji(window_name: str, cwd: str = "") -> str | None:
         if tokens & set(words):
             return emoji
     digest = hashlib.sha256(window_name.encode("utf-8")).digest()
-    return _HASH_POOL[digest[0] % len(_HASH_POOL)]
+    return _HASH_POOL[(digest[0] << 16 | digest[1] << 8 | digest[2]) % len(_HASH_POOL)]
 
 
 async def fetch_allowed_icon_ids() -> dict[str, str] | None:
