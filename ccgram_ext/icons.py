@@ -313,6 +313,7 @@ async def apply_icons_for_bound_topics() -> tuple[int, int]:
     """Apply icons to every bound topic. Returns (applied, considered)."""
     if not _feature_on():
         return (0, 0)
+    _applied.clear()  # /icons is a retroactive re-apply pass
     allowed = await fetch_allowed_icon_ids()
     if allowed is None:
         logger.warning("icon set unavailable; skipping this pass")
