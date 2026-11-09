@@ -10,7 +10,7 @@ A ccgram build that carries the extension seam (the `ccgram.extensions` entry-po
 
 - repo: https://github.com/paoloantinori/ccgram
 - branch: `fork/main`
-- core cost of the seam: one loader module plus four integration lines (`docs/extension-seam.md` in the fork)
+- core cost of the seam: one loader module plus four integration lines (the loader is `src/ccgram/extensions.py` in that repo)
 
 ## Install
 
